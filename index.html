@@ -67,6 +67,7 @@ body {
   z-index: 3;
   background: radial-gradient(ellipse at 50% 108%, #ffc0a8 0%, #ff9fd2 14%, #b57bff 38%, #5a22a8 66%, #1a063b 100%);
   overflow: hidden;
+  pointer-events: none;
 }
 #cv, #cv2 {
   position: absolute;
@@ -297,7 +298,13 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   gap: 1.2rem;
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s;
 }
-#ask.go #ask-card { opacity: 0; transform: translateY(-30px) scale(0.96); }
+#ask.go, #ask.go #ask-card {
+  opacity: 0 !important;
+  transform: translateY(-40px) scale(0.9) !important;
+  pointer-events: none !important;
+  display: none !important;
+  visibility: hidden !important;
+}
 
 #sub {
   font: 600 1.45rem 'Caveat', cursive;
@@ -1878,11 +1885,22 @@ function decode() {
     var k = i++;
     var done = function(b){ bm[k] = b; setTimeout(next, 0); };
     try {
-      fetch(FRAMES[k]).then(function(r){ return r.blob(); }).then(function(b){ return createImageBitmap(b); }).then(done).catch(function(){
-        var im = new Image(); im.onload = function(){ done(im); }; im.src = FRAMES[k];
+      fetch(FRAMES[k]).then(function(r){
+        if(!r.ok) throw new Error('status ' + r.status);
+        return r.blob();
+      }).then(function(b){
+        return createImageBitmap(b);
+      }).then(done).catch(function(){
+        var im = new Image();
+        im.onload = function(){ done(im); };
+        im.onerror = function(){ done(null); };
+        im.src = FRAMES[k];
       });
     } catch(e) {
-      var im = new Image(); im.onload = function(){ done(im); }; im.src = FRAMES[k];
+      var im = new Image();
+      im.onload = function(){ done(im); };
+      im.onerror = function(){ done(null); };
+      im.src = FRAMES[k];
     }
   })();
 }
@@ -2077,8 +2095,30 @@ function submit() {
   msg.textContent = '';
 
   var b = $('open').getBoundingClientRect(), ox = b.left + b.width / 2, oy = b.top + b.height / 2;
+  
+  // Instant clean dismissal of #ask and #ask-card
   ask.classList.add('go');
   ask.style.pointerEvents = 'none';
+  if(window.gsap) {
+    gsap.to("#ask-card", {
+      opacity: 0,
+      y: -40,
+      scale: 0.88,
+      duration: 0.35,
+      ease: "power2.in"
+    });
+    gsap.to(ask, {
+      opacity: 0,
+      duration: 0.35,
+      onComplete: function() {
+        ask.classList.remove('on');
+        ask.style.display = 'none';
+      }
+    });
+  } else {
+    ask.classList.remove('on');
+    ask.style.display = 'none';
+  }
 
   $('flash').classList.add('go');
   hearts(ox, oy);
@@ -2087,7 +2127,7 @@ function submit() {
     dRun = false;
     $('dust').style.opacity = 0;
     $('hud-brackets').classList.remove('on');
-  }, 500);
+  }, 400);
 
   rewind(function(){
     whenReady(startFilm);
@@ -2105,7 +2145,7 @@ function rewind(done) {
   setTimeout(function(){
     dt.classList.add('on');
     setTimeout(function(){
-      var T = reduce ? 10 : 5400, t0 = performance.now();
+      var T = reduce ? 10 : 2200, t0 = performance.now();
       (function f(now){
         var k = Math.min((now - t0) / T, 1);
         var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
@@ -2116,17 +2156,34 @@ function rewind(done) {
         dt.classList.add('land');
         setTimeout(function(){
           dt.classList.remove('on');
-          setTimeout(function(){ dt.style.display = 'none'; }, 1000);
+          setTimeout(function(){ dt.style.display = 'none'; }, 500);
           done();
-        }, reduce ? 100 : 1700);
+        }, reduce ? 50 : 500);
       })(t0);
-    }, reduce ? 50 : 800);
-  }, reduce ? 50 : 900);
+    }, reduce ? 50 : 300);
+  }, reduce ? 50 : 300);
 }
 
 function whenReady(cb) {
-  if(ready) cb();
-  else setTimeout(function(){ whenReady(cb); }, 80);
+  var called = false;
+  function trigger() {
+    if(called) return;
+    called = true;
+    cb();
+  }
+  if(ready) { trigger(); return; }
+  var safetyTimer = setTimeout(function(){
+    ready = true;
+    trigger();
+  }, 1000);
+  (function check(){
+    if(ready) {
+      clearTimeout(safetyTimer);
+      trigger();
+    } else {
+      setTimeout(check, 60);
+    }
+  })();
 }
 
 $('open').addEventListener('click', submit);
@@ -2481,34 +2538,67 @@ function startFilm() {
   draw(0);
   document.body.classList.add('cinema-mode');
 
-  cv.style.transition = reduce ? 'opacity .8s' : 'opacity 2.6s ease-out, transform 8s cubic-bezier(.2,.6,.2,1)';
+  cv.style.transition = reduce ? 'opacity .8s' : 'opacity 1.6s ease-out, transform 4s cubic-bezier(.2,.6,.2,1)';
   requestAnimationFrame(function(){
     cv.style.opacity = 1;
     cv.style.transform = 'scale(1)';
   });
 
+  // Early scroll interceptor: if user touches or wheels right now, immediately unlock full scroll!
+  function onEarlyScroll() {
+    window.removeEventListener('wheel', onEarlyScroll);
+    window.removeEventListener('touchmove', onEarlyScroll);
+    if(state === 'play') finish();
+  }
+  window.addEventListener('wheel', onEarlyScroll, { passive: true });
+  window.addEventListener('touchmove', onEarlyScroll, { passive: true });
+
   var prev = performance.now(), el = 0;
   (function f(now){
+    if(state === 'scroll') return;
     var dt = Math.min((now - prev) / 1000, 0.04);
     prev = now;
     el += dt;
-    var k = Math.min(el / (reduce ? 0.1 : 5.5), 1), e = k * k * (3 - 2 * k);
+    var k = Math.min(el / (reduce ? 0.1 : 1.8), 1), e = k * k * (3 - 2 * k);
     curT = INTRO0 * e;
     draw(curT);
-    if(k >= 1) { finish(); return; }
+    if(k >= 1) {
+      window.removeEventListener('wheel', onEarlyScroll);
+      window.removeEventListener('touchmove', onEarlyScroll);
+      finish();
+      return;
+    }
     requestAnimationFrame(f);
   })(prev);
 }
 
 function finish() {
+  if(state === 'scroll') return;
   state = 'scroll';
+
+  // Ensure #ask is completely hidden and cannot capture pointer events
+  if(ask) {
+    ask.classList.remove('on');
+    ask.classList.add('go');
+    ask.style.display = 'none';
+    ask.style.pointerEvents = 'none';
+  }
+
+  // Ensure curtains and stage never block touches or scrolls
+  ['cl', 'cr', 'val', 'stage'].forEach(function(id){
+    var el = $(id);
+    if(el) el.style.pointerEvents = 'none';
+  });
+
   var hud = $('hud-actions');
   if(hud) hud.classList.add('on');
+
+  // Fully unlock page scrolling
   document.body.style.overflow = 'auto';
   document.body.style.overflowY = 'auto';
   document.documentElement.style.overflow = 'auto';
   document.documentElement.style.overflowY = 'auto';
-  track.style.height = '2000vh';
+  track.style.height = '14000px';
   scrollTo(0, 0);
   hint.style.opacity = 1;
 
