@@ -51,7 +51,7 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 2;
+  z-index: 10;
   pointer-events: none;
   transition: opacity 1.2s ease;
 }
@@ -941,15 +941,7 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
 
 
 
-<!-- 3D Birthday Cake Interactive Modal (Grand Finale) -->
-<div id="cake-modal">
-  <div id="cake-card">
-    <h2 class="cake-title">Happy Birthday Madhu Ma! 🎂💜</h2>
-    <canvas id="cake-canvas-3d"></canvas>
-    <p class="cake-subtitle">Blow the candles or tap the cake to celebrate this magical day! ✨</p>
-    <button id="cake-action-btn">Blow Candles & Cut Cake 🎂</button>
-  </div>
-</div>
+
 
 <!-- Cursor Magic Sparkle Canvas -->
 <canvas id="cursor-canvas"></canvas>
@@ -975,39 +967,300 @@ var M = window.Motion;
 var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
 
 /* ==========================================================
-   1. THREE.JS 3D UNIVERSE & INTERACTIVE CELESTIAL ENGINE
+   1. THREE.JS FULL 3D WEB EXPERIENCE ENGINE
    ========================================================== */
-var scene, camera, renderer, starParticles, crystalHearts = [], cakeScene, cakeCamera, cakeRenderer, cakeMesh, candleFlames = [];
+var scene, camera, renderer, raycaster, mouseRay;
+var starParticles, crystalHearts = [];
+var jhumkaGroup, musicGroup, stageCakeGroup, candleFlames = [];
 var mouse3D = { x: 0, y: 0, targetX: 0, targetY: 0 };
+var scrollProgress = 0, targetScrollProgress = 0;
 var cakeCandlesLit = true;
+
+// Procedural 3D Golden Jhumka Earring
+function create3DJhumka() {
+  var group = new THREE.Group();
+  
+  // Luxury 24k Gold Material
+  var goldMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffd700,
+    emissive: 0x553a00,
+    metalness: 0.95,
+    roughness: 0.18,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1,
+    reflectivity: 0.9
+  });
+
+  // Pearl Material
+  var pearlMat = new THREE.MeshPhysicalMaterial({
+    color: 0xfffbf0,
+    roughness: 0.12,
+    transmission: 0.35,
+    ior: 1.5,
+    clearcoat: 0.8
+  });
+
+  // Ruby Gemstone Material
+  var rubyMat = new THREE.MeshPhysicalMaterial({
+    color: 0xff1053,
+    emissive: 0x660020,
+    metalness: 0.1,
+    roughness: 0.1,
+    transmission: 0.7,
+    ior: 1.76
+  });
+
+  // Stud Base (Top Flower)
+  var studGeo = new THREE.SphereGeometry(7, 24, 16);
+  studGeo.scale(1, 0.45, 1);
+  var stud = new THREE.Mesh(studGeo, goldMat);
+  group.add(stud);
+
+  // Center Ruby in stud
+  var rubyGeo = new THREE.OctahedronGeometry(4, 2);
+  var ruby = new THREE.Mesh(rubyGeo, rubyMat);
+  ruby.position.y = 1.8;
+  group.add(ruby);
+
+  // Connecting Ring
+  var ringGeo = new THREE.TorusGeometry(3.2, 0.7, 12, 24);
+  var ring = new THREE.Mesh(ringGeo, goldMat);
+  ring.position.y = -6.5;
+  group.add(ring);
+
+  // Jhumka Bell Dome (Inverted hollow bowl)
+  var bellGeo = new THREE.SphereGeometry(15, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
+  var bell = new THREE.Mesh(bellGeo, goldMat);
+  bell.rotation.x = Math.PI;
+  bell.position.y = -10;
+  group.add(bell);
+
+  // Ornate Filigree Ring around the bell rim
+  var rimGeo = new THREE.TorusGeometry(15, 1.2, 12, 36);
+  var rim = new THREE.Mesh(rimGeo, goldMat);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = -17.5;
+  group.add(rim);
+
+  // 16 Hanging Pearl Droplets along the rim
+  var pearlCount = 16;
+  for(var i = 0; i < pearlCount; i++) {
+    var angle = (i / pearlCount) * Math.PI * 2;
+    var px = Math.cos(angle) * 15;
+    var pz = Math.sin(angle) * 15;
+
+    // Tiny gold link
+    var linkGeo = new THREE.CylinderGeometry(0.2, 0.2, 3, 8);
+    var link = new THREE.Mesh(linkGeo, goldMat);
+    link.position.set(px, -19, pz);
+    group.add(link);
+
+    // Pearl bead
+    var pearlGeo = new THREE.SphereGeometry(1.8, 16, 16);
+    var pearl = new THREE.Mesh(pearlGeo, pearlMat);
+    pearl.position.set(px, -21.5, pz);
+    group.add(pearl);
+  }
+
+  // Center Pearl Drop
+  var centerDropGeo = new THREE.ConeGeometry(2.4, 6, 16);
+  centerDropGeo.scale(1, -1, 1);
+  var centerDrop = new THREE.Mesh(centerDropGeo, pearlMat);
+  centerDrop.position.y = -17;
+  group.add(centerDrop);
+
+  group.scale.set(1.4, 1.4, 1.4);
+  group.position.set(160, -400, 0); // Start below viewport
+  return group;
+}
+
+// Procedural 3D Holographic Vinyl & Music Notes
+function create3DMusicNotes() {
+  var group = new THREE.Group();
+
+  // Vinyl Record Disc
+  var vinylGeo = new THREE.CylinderGeometry(28, 28, 0.8, 48);
+  var vinylMat = new THREE.MeshStandardMaterial({
+    color: 0x111116,
+    roughness: 0.28,
+    metalness: 0.85
+  });
+  var vinyl = new THREE.Mesh(vinylGeo, vinylMat);
+  vinyl.rotation.x = 0.6;
+  vinyl.rotation.z = 0.3;
+  group.add(vinyl);
+
+  // Center Vinyl Label
+  var labelGeo = new THREE.CylinderGeometry(10, 10, 0.9, 32);
+  var labelMat = new THREE.MeshStandardMaterial({
+    color: 0x9b4dff,
+    emissive: 0x3d007a,
+    roughness: 0.3
+  });
+  var label = new THREE.Mesh(labelGeo, labelMat);
+  label.rotation.x = 0.6;
+  label.rotation.z = 0.3;
+  group.add(label);
+
+  // 3D Floating Musical Notes (♪)
+  var noteMat = new THREE.MeshPhysicalMaterial({
+    color: 0xff8ac9,
+    emissive: 0x6e0048,
+    metalness: 0.4,
+    roughness: 0.15,
+    clearcoat: 1.0
+  });
+
+  for(var n = 0; n < 5; n++) {
+    var noteGroup = new THREE.Group();
+    // Note head (oval ball)
+    var headGeo = new THREE.SphereGeometry(3.2, 16, 16);
+    headGeo.scale(1.3, 0.9, 0.9);
+    var head = new THREE.Mesh(headGeo, noteMat);
+    noteGroup.add(head);
+
+    // Note stem
+    var stemGeo = new THREE.CylinderGeometry(0.6, 0.6, 14, 12);
+    var stem = new THREE.Mesh(stemGeo, noteMat);
+    stem.position.set(3.5, 6, 0);
+    noteGroup.add(stem);
+
+    // Note flag
+    var flagGeo = new THREE.TorusGeometry(4.5, 0.8, 8, 16, Math.PI * 0.65);
+    var flag = new THREE.Mesh(flagGeo, noteMat);
+    flag.position.set(6, 10, 0);
+    flag.rotation.z = -0.5;
+    noteGroup.add(flag);
+
+    var angle = (n / 5) * Math.PI * 2;
+    noteGroup.position.set(Math.cos(angle) * 45, Math.sin(angle) * 35 + 15, (R() - 0.5) * 30);
+    noteGroup.scale.set(0.9, 0.9, 0.9);
+    noteGroup.userData = { phase: n * 1.2, speed: 1.5 + R() * 0.8 };
+    group.add(noteGroup);
+  }
+
+  group.position.set(-160, -400, 0); // Start below viewport
+  return group;
+}
+
+// Procedural 3D Floating Celebration Birthday Cake
+function create3DStageCake() {
+  var group = new THREE.Group();
+
+  // Tier 1 (Base)
+  var t1Geo = new THREE.CylinderGeometry(24, 24, 12, 36);
+  var cakeMat1 = new THREE.MeshStandardMaterial({ color: 0x5a188f, roughness: 0.35, metalness: 0.1 });
+  var t1 = new THREE.Mesh(t1Geo, cakeMat1);
+  t1.position.y = 6;
+  group.add(t1);
+
+  // Cream icing tier 1
+  var creamGeo1 = new THREE.TorusGeometry(24, 1.8, 16, 36);
+  var creamMat = new THREE.MeshStandardMaterial({ color: 0xfff7ed, roughness: 0.2 });
+  var c1 = new THREE.Mesh(creamGeo1, creamMat);
+  c1.rotation.x = Math.PI / 2;
+  c1.position.y = 12;
+  group.add(c1);
+
+  // Tier 2 (Top)
+  var t2Geo = new THREE.CylinderGeometry(16, 16, 10, 32);
+  var cakeMat2 = new THREE.MeshStandardMaterial({ color: 0xff7fc0, roughness: 0.35, metalness: 0.1 });
+  var t2 = new THREE.Mesh(t2Geo, cakeMat2);
+  t2.position.y = 17;
+  group.add(t2);
+
+  // Cream icing tier 2
+  var creamGeo2 = new THREE.TorusGeometry(16, 1.5, 16, 32);
+  var c2 = new THREE.Mesh(creamGeo2, creamMat);
+  c2.rotation.x = Math.PI / 2;
+  c2.position.y = 22;
+  group.add(c2);
+
+  // Candles & Animated 3D Flame Particles
+  var candlePositions = [
+    [0, 24, 0],
+    [-7, 23.5, -4],
+    [7, 23.5, -4],
+    [-5, 23.5, 6],
+    [5, 23.5, 6]
+  ];
+
+  candleFlames = [];
+  candlePositions.forEach(function(pos){
+    var candleGeo = new THREE.CylinderGeometry(0.8, 0.8, 7, 16);
+    var candleMat = new THREE.MeshStandardMaterial({ color: 0xffea9f, roughness: 0.2 });
+    var candle = new THREE.Mesh(candleGeo, candleMat);
+    candle.position.set(pos[0], pos[1] + 3.5, pos[2]);
+    group.add(candle);
+
+    // Glowing Flame
+    var flameGeo = new THREE.SphereGeometry(1.4, 16, 16);
+    flameGeo.scale(1, 2, 1);
+    var flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    var flame = new THREE.Mesh(flameGeo, flameMat);
+    flame.position.set(pos[0], pos[1] + 8, pos[2]);
+    group.add(flame);
+    candleFlames.push(flame);
+  });
+
+  // Orbiting Mini 3D Gift Boxes
+  var giftMat = new THREE.MeshStandardMaterial({ color: 0xff5c9d, roughness: 0.2, metalness: 0.2 });
+  var goldRibbonMat = new THREE.MeshStandardMaterial({ color: 0xffe9a8, roughness: 0.1, metalness: 0.8 });
+  for(var g = 0; g < 3; g++) {
+    var boxGroup = new THREE.Group();
+    var bGeo = new THREE.BoxGeometry(6, 6, 6);
+    var box = new THREE.Mesh(bGeo, giftMat);
+    boxGroup.add(box);
+
+    var rGeo = new THREE.BoxGeometry(6.2, 6.2, 1.8);
+    var ribbon = new THREE.Mesh(rGeo, goldRibbonMat);
+    boxGroup.add(ribbon);
+
+    boxGroup.position.set((g - 1) * 36, -2, (R() - 0.5) * 20);
+    boxGroup.rotation.set(R(), R(), R());
+    boxGroup.userData = { rotSpeed: 0.015 + R() * 0.01 };
+    group.add(boxGroup);
+  }
+
+  group.scale.set(1.1, 1.1, 1.1);
+  group.position.set(0, -450, 0); // Start below viewport
+  return group;
+}
 
 function init3DUniverse() {
   var canvas = $('webgl-canvas');
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x070312, 0.0018);
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1500);
-  camera.position.z = 400;
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 420);
 
-  renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
+  renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
+    powerPreference: 'high-performance'
+  });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
-  // Ambient & Dual Specular Lights
-  var ambLight = new THREE.AmbientLight(0xffe6f5, 0.7);
+  raycaster = new THREE.Raycaster();
+  mouseRay = new THREE.Vector2();
+
+  // Ambient & Dynamic Specular Point Lights
+  var ambLight = new THREE.AmbientLight(0xffe6f5, 0.85);
   scene.add(ambLight);
 
-  var light1 = new THREE.PointLight(0xb57bff, 2.4, 800);
-  light1.position.set(200, 250, 150);
+  var light1 = new THREE.PointLight(0xb57bff, 2.8, 1200);
+  light1.position.set(220, 260, 200);
   scene.add(light1);
 
-  var light2 = new THREE.PointLight(0xff9fd2, 2.2, 800);
-  light2.position.set(-200, -200, 100);
+  var light2 = new THREE.PointLight(0xff9fd2, 2.5, 1200);
+  light2.position.set(-220, -220, 160);
   scene.add(light2);
 
-  // 3D Stardust Constellation Particles
+  // 3D Stardust Galaxy Field
   var starGeo = new THREE.BufferGeometry();
-  var starCount = reduce ? 150 : 700;
+  var starCount = reduce ? 180 : 850;
   var starPos = new Float32Array(starCount * 3);
   var starColors = new Float32Array(starCount * 3);
 
@@ -1020,9 +1273,9 @@ function init3DUniverse() {
   ];
 
   for(var i = 0; i < starCount; i++) {
-    starPos[i*3] = (R() - 0.5) * 1200;
-    starPos[i*3+1] = (R() - 0.5) * 1000;
-    starPos[i*3+2] = (R() - 0.5) * 800;
+    starPos[i*3] = (R() - 0.5) * 1400;
+    starPos[i*3+1] = (R() - 0.5) * 1100;
+    starPos[i*3+2] = (R() - 0.5) * 1000;
 
     var c = colorPalette[Math.floor(R() * colorPalette.length)];
     starColors[i*3] = c.r;
@@ -1032,24 +1285,24 @@ function init3DUniverse() {
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
-  // Generate smooth circular particle texture
+  // Circular glowing sprite
   var pCanvas = document.createElement('canvas');
   pCanvas.width = pCanvas.height = 32;
   var pCtx = pCanvas.getContext('2d');
   var grad = pCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
   grad.addColorStop(0, 'rgba(255,255,255,1)');
-  grad.addColorStop(0.3, 'rgba(230,200,255,0.7)');
+  grad.addColorStop(0.3, 'rgba(230,200,255,0.75)');
   grad.addColorStop(1, 'rgba(181,123,255,0)');
   pCtx.fillStyle = grad;
   pCtx.beginPath(); pCtx.arc(16, 16, 16, 0, Math.PI*2); pCtx.fill();
   var pTex = new THREE.CanvasTexture(pCanvas);
 
   var starMat = new THREE.PointsMaterial({
-    size: 9,
+    size: 10,
     vertexColors: true,
     map: pTex,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.9,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });
@@ -1083,23 +1336,34 @@ function init3DUniverse() {
     reflectivity: 0.9
   });
 
-  var heartCount = reduce ? 2 : 6;
+  var heartCount = reduce ? 2 : 7;
   for(var h = 0; h < heartCount; h++) {
     var mesh = new THREE.Mesh(heartGeo, heartMat.clone());
-    var scale = 0.8 + R() * 0.9;
+    var scale = 0.85 + R() * 0.9;
     mesh.scale.set(scale, -scale, scale);
-    mesh.position.set((R() - 0.5) * 550, (R() - 0.5) * 350, (R() - 0.5) * 250);
+    mesh.position.set((R() - 0.5) * 580, (R() - 0.5) * 380, (R() - 0.5) * 300);
     mesh.rotation.set(R() * Math.PI, R() * Math.PI, R() * Math.PI);
     mesh.userData = {
-      rotSpeedX: 0.005 + R() * 0.01,
-      rotSpeedY: 0.006 + R() * 0.012,
+      rotSpeedX: 0.006 + R() * 0.012,
+      rotSpeedY: 0.007 + R() * 0.014,
       baseY: mesh.position.y,
       speed: 0.8 + R() * 1.2,
-      phase: R() * Math.PI * 2
+      phase: R() * Math.PI * 2,
+      isInteractive: true
     };
     scene.add(mesh);
     crystalHearts.push(mesh);
   }
+
+  // Add 3D Themed Objects
+  jhumkaGroup = create3DJhumka();
+  scene.add(jhumkaGroup);
+
+  musicGroup = create3DMusicNotes();
+  scene.add(musicGroup);
+
+  stageCakeGroup = create3DStageCake();
+  scene.add(stageCakeGroup);
 
   // Resize listener
   window.addEventListener('resize', function(){
@@ -1108,122 +1372,35 @@ function init3DUniverse() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Mouse & Touch tracking for 3D Parallax
+  // Mouse & Touch tracking for 3D Parallax & Raycasting
   window.addEventListener('pointermove', function(e){
     mouse3D.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
     mouse3D.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
-  });
-}
-
-// 3D Interactive Birthday Cake (for the celebration modal)
-function init3DCake() {
-  var canvas = $('cake-canvas-3d');
-  cakeScene = new THREE.Scene();
-  cakeCamera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
-  cakeCamera.position.set(0, 5, 14);
-  cakeCamera.lookAt(0, 1.2, 0);
-
-  cakeRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  cakeRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
-
-  var lightTop = new THREE.PointLight(0xffe9a8, 2.5, 30);
-  lightTop.position.set(0, 8, 4);
-  cakeScene.add(lightTop);
-
-  var amb = new THREE.AmbientLight(0xffe0f0, 1.2);
-  cakeScene.add(amb);
-
-  cakeMesh = new THREE.Group();
-
-  // Tier 1 (Base)
-  var t1Geo = new THREE.CylinderGeometry(4.2, 4.2, 2.2, 32);
-  var cakeMat1 = new THREE.MeshStandardMaterial({ color: 0x5a188f, roughness: 0.35, metalness: 0.1 });
-  var t1 = new THREE.Mesh(t1Geo, cakeMat1);
-  t1.position.y = 1.1;
-  cakeMesh.add(t1);
-
-  // Cream icing tier 1
-  var creamGeo1 = new THREE.TorusGeometry(4.2, 0.3, 16, 32);
-  var creamMat = new THREE.MeshStandardMaterial({ color: 0xfff6ea, roughness: 0.2 });
-  var c1 = new THREE.Mesh(creamGeo1, creamMat);
-  c1.rotation.x = Math.PI / 2;
-  c1.position.y = 2.15;
-  cakeMesh.add(c1);
-
-  // Tier 2 (Top)
-  var t2Geo = new THREE.CylinderGeometry(2.8, 2.8, 1.8, 32);
-  var cakeMat2 = new THREE.MeshStandardMaterial({ color: 0xff7fc0, roughness: 0.35, metalness: 0.1 });
-  var t2 = new THREE.Mesh(t2Geo, cakeMat2);
-  t2.position.y = 3.1;
-  cakeMesh.add(t2);
-
-  // Cream icing tier 2
-  var creamGeo2 = new THREE.TorusGeometry(2.8, 0.25, 16, 32);
-  var c2 = new THREE.Mesh(creamGeo2, creamMat);
-  c2.rotation.x = Math.PI / 2;
-  c2.position.y = 3.95;
-  cakeMesh.add(c2);
-
-  // Candles & Animated Flames
-  candleFlames = [];
-  var candlePositions = [
-    [0, 4.4, 0],
-    [-1.2, 4.3, -0.6],
-    [1.2, 4.3, -0.6],
-    [-0.8, 4.3, 1.0],
-    [0.8, 4.3, 1.0]
-  ];
-
-  candlePositions.forEach(function(pos){
-    var candleGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.1, 16);
-    var candleMat = new THREE.MeshStandardMaterial({ color: 0xffea9f, roughness: 0.2 });
-    var candle = new THREE.Mesh(candleGeo, candleMat);
-    candle.position.set(pos[0], pos[1], pos[2]);
-    cakeMesh.add(candle);
-
-    // Flame
-    var flameGeo = new THREE.SphereGeometry(0.22, 16, 16);
-    flameGeo.scale(1, 1.8, 1);
-    var flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    var flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.set(pos[0], pos[1] + 0.8, pos[2]);
-    cakeMesh.add(flame);
-    candleFlames.push(flame);
+    mouseRay.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseRay.y = -(e.clientY / window.innerHeight) * 2 + 1;
   });
 
-  cakeScene.add(cakeMesh);
-}
-
-function blowCakeCandles() {
-  if(!cakeCandlesLit) return;
-  cakeCandlesLit = false;
-  sfx('pop');
-  candleFlames.forEach(function(f){
-    f.visible = false;
-  });
-  // Grand Confetti Fireworks
-  fireGrandCelebrationConfetti();
-  $('cake-action-btn').textContent = "Candles Blown! 🎂 Happy Birthday!! 🎉";
-}
-
-function fireGrandCelebrationConfetti() {
-  if(window.confetti) {
-    var count = 260;
-    var defaults = { origin: { y: 0.7 } };
-    function fire(particleRatio, opts) {
-      confetti(Object.assign({}, defaults, opts, {
-        particleCount: Math.floor(count * particleRatio)
-      }));
+  // Interactive 3D Click / Tap Response
+  window.addEventListener('click', function(e){
+    if(!camera || !scene) return;
+    raycaster.setFromCamera(mouseRay, camera);
+    var intersects = raycaster.intersectObjects(scene.children, true);
+    if(intersects.length > 0) {
+      var obj = intersects[0].object;
+      sfx('pop');
+      if(obj.parent && obj.parent !== scene) obj = obj.parent;
+      // Spring spin reaction
+      obj.rotation.y += Math.PI * 0.75;
+      if(obj.scale) {
+        var origX = obj.scale.x;
+        obj.scale.multiplyScalar(1.25);
+        setTimeout(function(){ obj.scale.set(origX, origX, origX); }, 300);
+      }
     }
-    fire(0.25, { spread: 26, startVelocity: 55, colors: ['#ffe9a8', '#ff9ecb'] });
-    fire(0.2, { spread: 60, colors: ['#b57bff', '#ffffff'] });
-    fire(0.35, { spread: 100, decay: 0.91, scalar: 1.2, colors: ['#ff68b4', '#86dbee', '#ffe9a8'] });
-    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, colors: ['#e5c9ff'] });
-    fire(0.1, { spread: 120, startVelocity: 45, colors: ['#ffd4eb'] });
-  }
+  });
 }
 
-// 3D Render Loop
+// 3D Render Loop with Scroll-Driven Depth
 var clock = new THREE.Clock();
 function animate3D() {
   requestAnimationFrame(animate3D);
@@ -1234,40 +1411,73 @@ function animate3D() {
   mouse3D.x += (mouse3D.targetX - mouse3D.x) * 0.05;
   mouse3D.y += (mouse3D.targetY - mouse3D.y) * 0.05;
 
+  scrollProgress += (targetScrollProgress - scrollProgress) * 0.08;
+  var c = scrollProgress;
+
   if(camera) {
-    camera.position.x = mouse3D.x * 60;
-    camera.position.y = -mouse3D.y * 50;
+    // Scroll-driven 3D Camera Travel
+    camera.position.x = mouse3D.x * 65 + Math.sin(c * Math.PI * 3) * 25;
+    camera.position.y = -mouse3D.y * 50 - c * 30;
+    camera.position.z = 420 - Math.min(c, 0.5) * 160 + Math.max(0, c - 0.5) * 120;
     camera.lookAt(0, 0, 0);
   }
 
   if(starParticles) {
-    starParticles.rotation.y = time * 0.02;
+    starParticles.rotation.y = time * 0.02 + c * 0.5;
     starParticles.rotation.x = time * 0.01;
   }
 
   crystalHearts.forEach(function(h){
     h.rotation.x += h.userData.rotSpeedX;
     h.rotation.y += h.userData.rotSpeedY;
-    h.position.y = h.userData.baseY + Math.sin(time * h.userData.speed + h.userData.phase) * 18;
+    h.position.y = h.userData.baseY + Math.sin(time * h.userData.speed + h.userData.phase) * 16;
   });
+
+  // 3D Jhumka Earring Sways and descends into view around Phase 0.48 - 0.64
+  if(jhumkaGroup) {
+    var jhumkaActive = c > 0.46 && c < 0.65;
+    var targetY = jhumkaActive ? 15 : -400;
+    jhumkaGroup.position.y += (targetY - jhumkaGroup.position.y) * 0.08;
+    jhumkaGroup.position.x = (window.innerWidth < 640) ? 0 : 160;
+    jhumkaGroup.rotation.z = Math.sin(time * 2.2) * 0.16;
+    jhumkaGroup.rotation.y = time * 0.6;
+  }
+
+  // 3D Music Vinyl & Notes float into view around Phase 0.62 - 0.78
+  if(musicGroup) {
+    var musicActive = c > 0.61 && c < 0.79;
+    var targetMusicY = musicActive ? 15 : -400;
+    musicGroup.position.y += (targetMusicY - musicGroup.position.y) * 0.08;
+    musicGroup.position.x = (window.innerWidth < 640) ? 0 : -160;
+    musicGroup.rotation.y = time * 0.8;
+  }
+
+  // 3D Celebration Birthday Cake descends into view around Phase 0.86+
+  if(stageCakeGroup) {
+    var cakeActive = c > 0.85;
+    var targetCakeY = cakeActive ? -30 : -450;
+    stageCakeGroup.position.y += (targetCakeY - stageCakeGroup.position.y) * 0.08;
+    stageCakeGroup.rotation.y = time * 0.4;
+
+    if(cakeCandlesLit) {
+      candleFlames.forEach(function(f, idx){
+        var flick = 1 + Math.sin(time * 15 + idx) * 0.18;
+        f.scale.set(flick, flick * 2, flick);
+      });
+    }
+  }
 
   if(renderer && scene && camera) {
     renderer.render(scene, camera);
   }
+}
 
-  // Render 3D Cake if active
-  if(cakeRenderer && cakeScene && cakeCamera) {
-    if(cakeMesh) {
-      cakeMesh.rotation.y += 0.015;
-    }
-    if(cakeCandlesLit) {
-      candleFlames.forEach(function(f, idx){
-        var flick = 1 + Math.sin(time * 14 + idx) * 0.15;
-        f.scale.set(flick, flick * 1.8, flick);
-      });
-    }
-    cakeRenderer.render(cakeScene, cakeCamera);
-  }
+// Initialize 3D Universe immediately!
+try {
+  init3DUniverse();
+  animate3D();
+} catch(e) {
+  console.warn("Three.js Universe initialization error:", e);
 }
 
 /* ==========================================================
@@ -1629,6 +1839,23 @@ function ok(s) {
   return /^vara+m+e+y*$/.test(s) || /^(sri|amulu|sriamulu|amulusri)$/.test(s);
 }
 
+function fireGrandCelebrationConfetti() {
+  if(window.confetti) {
+    var count = 260;
+    var defaults = { origin: { y: 0.7 } };
+    function fire(particleRatio, opts) {
+      confetti(Object.assign({}, defaults, opts, {
+        particleCount: Math.floor(count * particleRatio)
+      }));
+    }
+    fire(0.25, { spread: 26, startVelocity: 55, colors: ['#ffe9a8', '#ff9ecb'] });
+    fire(0.2, { spread: 60, colors: ['#b57bff', '#ffffff'] });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 1.2, colors: ['#ff68b4', '#86dbee', '#ffe9a8'] });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, colors: ['#e5c9ff'] });
+    fire(0.1, { spread: 120, startVelocity: 45, colors: ['#ffd4eb'] });
+  }
+}
+
 function submit() {
   if(state !== 'asking') return;
   if(!ok(inp.value)) {
@@ -1835,7 +2062,6 @@ function playCat(n, done) {
   var c = cloadClip(n);
   cplay = { n: n, c: c, t0: performance.now(), done: done, loop: !!CAT.loops[n], fired: false };
   clastIdx = -1;
-  // Update status chip
   var chip = $('cat-chip');
   var moodMap = {
     'idle': '🐱 Kutty Cat ✧ Chilling',
@@ -1968,15 +2194,10 @@ function finishGate(res) {
       gi++;
       gateOn = false;
       document.body.style.overflow = 'auto';
+      document.body.style.overflowY = 'auto';
       document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.overflowY = 'auto';
       playCat('idle');
-
-      // If finished all gates, open the 3D Birthday Cake Interactive Finale!
-      if(gi >= QUESTIONS.length) {
-        setTimeout(function(){
-          openCakeCeremony();
-        }, 800);
-      }
     }, 600);
   };
 
@@ -2008,18 +2229,6 @@ $('bgo').addEventListener('click', answer);
 btap.addEventListener('click', answer);
 bin.addEventListener('keydown', function(e){ if(e.key === 'Enter') answer(); });
 
-// Open Interactive 3D Cake Ceremony
-function openCakeCeremony() {
-  $('cake-modal').classList.add('on');
-  document.body.style.overflow = 'hidden';
-  sfx('ok');
-  fireGrandCelebrationConfetti();
-  if(!cakeScene) init3DCake();
-}
-$('cake-action-btn').addEventListener('click', blowCakeCandles);
-
-
-
 // Top Controls Handlers
 $('mute-btn').addEventListener('click', function(){
   sfxOn = !sfxOn;
@@ -2035,8 +2244,6 @@ $('fs-btn').addEventListener('click', function(){
     this.textContent = '⛶';
   }
 });
-
-
 
 var trick = null;
 function trickle(on) {
@@ -2095,26 +2302,17 @@ function finish() {
   v.style.background = 'radial-gradient(circle at 50% 60%, #4a1a8f, #15062e 75%)';
   need2(0);
 
-  // Initialize 3D Universe safely
-  try {
-    init3DUniverse();
-    animate3D();
-  } catch(e) {
-    console.warn("3D Universe initialization fallback:", e);
-  }
-
   (function loop(){
     var max = document.documentElement.scrollHeight - innerHeight;
     var p = max > 0 ? Math.min(scrollY / max, 1) : 0;
     cur += (p - cur) * 0.14;
     var c = cur;
+    targetScrollProgress = c;
 
     draw(INTRO0 + Math.min(c / 0.2, 1) * (DUR - INTRO0));
     cv.style.transform = 'scale(' + (1 + Math.min(Math.max(0, c - 0.2) / 0.25, 1) * 0.12) + ')';
     v.style.opacity = c < 0.2 ? 0 : c < 0.25 ? (c - 0.2) / 0.05 * 0.62 : c < 0.33 ? 0.62 : c < 0.36 ? 0.62 + (c - 0.33) / 0.03 * 0.2 : 0.82;
     hint.style.opacity = c < 0.02 ? 1 : 0;
-
-
 
     var ng = QUESTIONS[gi];
     if(ng && !gateOn && p >= ng.at - 0.07) preloadGate(ng);
