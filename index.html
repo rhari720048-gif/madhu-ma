@@ -429,14 +429,37 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
 
 #mtw {
   position: relative;
-  padding: 2.4rem 2rem;
-  max-width: 40rem;
-  border-radius: 28px;
-  background: rgba(18, 6, 40, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 2px var(--glass-specular);
+  padding: 1.8rem 1.4rem;
+  max-width: 38rem;
+}
+#mtw::before, #mtw::after {
+  content: "";
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 0 solid rgba(235, 215, 255, 0.7);
+  opacity: 0;
+  transition: opacity 1.2s 0.3s;
+}
+#mtw::before {
+  left: 0; top: 0; border-width: 1.5px 0 0 1.5px;
+}
+#mtw::after {
+  right: 0; bottom: 0; border-width: 0 1.5px 1.5px 0;
+}
+#msg2.in #mtw::before, #msg2.in #mtw::after {
+  opacity: 1;
+}
+#mline {
+  height: 1.5px;
+  width: min(60vw, 16rem);
+  background: linear-gradient(90deg, transparent, #e5c9ff, transparent);
+  transform: scaleX(0);
+  transition: transform 1.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+#msg2.in #mline {
+  transform: scaleX(1);
+  transition-delay: 0.5s;
 }
 #mt {
   font: 700 clamp(1.6rem, 5.6vw, 2.7rem)/1.45 'Dancing Script', cursive;
@@ -862,7 +885,7 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
 <!-- Story Message 1 -->
 <section class="sc" id="msg2">
   <p class="eyebrow">a little note for you</p>
-  <div id="mtw"><p id="mt"></p></div>
+  <div id="mtw"><p id="mt"></p></div><div id="mline"></div>
 </section>
 
 <!-- Story Message 2 (Happy Birthday Title) -->
