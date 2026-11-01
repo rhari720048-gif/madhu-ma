@@ -32,7 +32,18 @@
 }
 
 * { margin: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { background: var(--bg); color: var(--ink); font-family: 'Outfit', -apple-system, sans-serif; overflow: hidden; }
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Outfit', -apple-system, sans-serif;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Outfit', -apple-system, sans-serif;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+}
 
 /* 3D WebGL Background Canvas */
 #webgl-canvas {
@@ -751,7 +762,7 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
-#track { height: 0; }
+#track { height: 0; width: 1px; pointer-events: none; display: block; }
 
 /* Balloons & Lights */
 .bl {
@@ -1918,6 +1929,7 @@ function preloadGate(g) {
 function openGate(g, max) {
   gateOn = true;
   document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
   scrollTo(0, g.at * max);
   typeText($('bq'), g.q);
   bmsg.textContent = '';
@@ -1956,6 +1968,7 @@ function finishGate(res) {
       gi++;
       gateOn = false;
       document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
       playCat('idle');
 
       // If finished all gates, open the 3D Birthday Cake Interactive Finale!
@@ -2068,8 +2081,12 @@ function startFilm() {
 
 function finish() {
   state = 'scroll';
-  $('hud-actions').classList.add('on');
+  var hud = $('hud-actions');
+  if(hud) hud.classList.add('on');
   document.body.style.overflow = 'auto';
+  document.body.style.overflowY = 'auto';
+  document.documentElement.style.overflow = 'auto';
+  document.documentElement.style.overflowY = 'auto';
   track.style.height = '2000vh';
   scrollTo(0, 0);
   hint.style.opacity = 1;
@@ -2078,9 +2095,13 @@ function finish() {
   v.style.background = 'radial-gradient(circle at 50% 60%, #4a1a8f, #15062e 75%)';
   need2(0);
 
-  // Initialize 3D Universe
-  init3DUniverse();
-  animate3D();
+  // Initialize 3D Universe safely
+  try {
+    init3DUniverse();
+    animate3D();
+  } catch(e) {
+    console.warn("3D Universe initialization fallback:", e);
+  }
 
   (function loop(){
     var max = document.documentElement.scrollHeight - innerHeight;
@@ -2101,6 +2122,7 @@ function finish() {
       gateOn = true;
       pend = ng;
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       scrollTo(0, ng.at * max);
     }
     if(pend && Math.abs(cur - pend.at) < 0.004 && frameReady(pend.at)) {
