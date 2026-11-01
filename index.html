@@ -41,11 +41,20 @@ html {
   color: var(--ink);
   font-family: 'Outfit', -apple-system, sans-serif;
 }
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Outfit', -apple-system, sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: 'Outfit', -apple-system, sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -773,7 +782,7 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
-#track { height: 0; width: 1px; pointer-events: none; display: block; }
+#track { height: 14000px; width: 1px; pointer-events: none; display: block; }
 
 /* Balloons & Lights */
 .bl {
@@ -1133,7 +1142,7 @@ var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
    ========================================================== */
 var scene, camera, renderer, raycaster, mouseRay;
 var starParticles, crystalHearts = [];
-var jhumkaGroup, musicGroup, stageCakeGroup, candleFlames = [], handGroup, knifeGroup, lighterGroup, lighterFlame, handCakeSlice, cakeCandleLight;
+var starCount = 850, jhumkaGroup, musicGroup, stageCakeGroup, candleFlames = [], handGroup, knifeGroup, lighterGroup, lighterFlame, handCakeSlice, cakeCandleLight;
 var mouse3D = { x: 0, y: 0, targetX: 0, targetY: 0 };
 var scrollProgress = 0, targetScrollProgress = 0;
 var cakeCandlesLit = true;
@@ -1733,7 +1742,8 @@ function animate3D() {
 
   if(starParticles && starParticles.geometry && starParticles.geometry.attributes.position) {
     var pos = starParticles.geometry.attributes.position.array;
-    for(var pi = 0; pi < starCount; pi++) {
+    var starTotal = Math.floor(pos.length / 3);
+    for(var pi = 0; pi < starTotal; pi++) {
       pos[pi*3 + 1] += 0.45;
       if(mouse3D.targetX !== undefined) {
         var dx = pos[pi*3] - mouse3D.x * 200;
@@ -2223,15 +2233,22 @@ lights();
 
 // Curtain Open Flow
 var tap = $('tap'), ask = $('ask'), inp = $('in'), msg = $('msg'), hint = $('hint'), track = $('track');
-tap.disabled = true; tap.textContent = 'Loading magical film…';
-(function w(){
-  if(ready) {
-    tap.disabled = false;
-    tap.textContent = 'Tap to open 💜';
-  } else setTimeout(w, 150);
-})();
+tap.disabled = false;
+tap.textContent = 'Tap to open 💜';
+ready = true;
+
+
+// Auto-open curtains if user scrolls down
+window.addEventListener('scroll', function onInitialScroll(){
+  if(state === 'closed' && window.scrollY > 15) {
+    var t = $('tap');
+    if(t && !t.disabled) t.click();
+    window.removeEventListener('scroll', onInitialScroll);
+  }
+}, { passive: true });
 
 tap.addEventListener('click', function(){
+
   actx();
   if(state !== 'closed') return;
   state = 'asking';
@@ -2359,6 +2376,13 @@ function submit() {
     $('dust').style.opacity = 0;
     $('hud-brackets').classList.remove('on');
   }, 400);
+
+  // Unlock scrolling immediately on answer submit!
+  document.body.style.overflow = 'auto';
+  document.body.style.overflowY = 'auto';
+  document.documentElement.style.overflow = 'auto';
+  document.documentElement.style.overflowY = 'auto';
+  track.style.height = '14000px';
 
   rewind(function(){
     whenReady(startFilm);
