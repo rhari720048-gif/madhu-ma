@@ -10,6 +10,10 @@
 
 <!-- 3D & Animation Engines -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- GSAP & Motion Physics Engine (Antigravity Standard) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/motion@11.11.17/dist/motion.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
 
@@ -834,6 +838,80 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   .hud-actions { top: 8px; right: 8px; }
   #catc { height: 26vh; }
 }
+
+/* ==========================================================
+   ANTIGRAVITY DESIGN EXPERT: 3D SPATIAL & GLASSMORPHISM SUITE
+   ========================================================== */
+#ask { perspective: 1200px; }
+#cat { perspective: 1000px; }
+#cake-modal { perspective: 1400px; }
+
+.antigravity-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle 320px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.26) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  mix-blend-mode: overlay;
+  z-index: 20;
+}
+
+@keyframes antigravityFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate3d(0, 0, 1, 0deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate3d(1, 0.5, 0, 0.8deg);
+  }
+}
+
+.antigravity-levitate {
+  animation: antigravityFloat 5.6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+#ask-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+#ask-card > #sub { transform: translateZ(14px); }
+#ask-card > #q { transform: translateZ(26px); }
+#ask-card > #ln { transform: translateZ(16px); }
+#ask-card > #row { transform: translateZ(22px); }
+#ask-card > #open { transform: translateZ(32px); }
+
+#bub {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+#bub > #cat-chip { transform: translateZ(14px); }
+#bub > #bq { transform: translateZ(22px); }
+#bub > #brow { transform: translateZ(24px); }
+#bub > #btap { transform: translateZ(28px); }
+
+#cake-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+#cake-card > .cake-title { transform: translateZ(26px); }
+#cake-card > .cake-subtitle { transform: translateZ(18px); }
+#cake-card > #cake-canvas-3d { transform: translateZ(32px); }
+#cake-card > #cake-action-btn { transform: translateZ(36px); }
+
+/* Tactile 3D Button Depth */
+#tap:active, #open:active, #bgo:active, #btap:active, #cake-action-btn:active, .hud-icon-btn:active {
+  transform: perspective(800px) translateZ(-6px) scale(0.96) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 2px 4px rgba(0,0,0,0.35) !important;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .antigravity-levitate { animation: none !important; }
+  .antigravity-glare { display: none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -1422,9 +1500,26 @@ function animate3D() {
     camera.lookAt(0, 0, 0);
   }
 
-  if(starParticles) {
-    starParticles.rotation.y = time * 0.02 + c * 0.5;
-    starParticles.rotation.x = time * 0.01;
+  if(starParticles && starParticles.geometry && starParticles.geometry.attributes.position) {
+    var pos = starParticles.geometry.attributes.position.array;
+    for(var pi = 0; pi < starCount; pi++) {
+      pos[pi*3 + 1] += 0.45;
+      if(mouse3D.targetX !== undefined) {
+        var dx = pos[pi*3] - mouse3D.x * 200;
+        var dy = pos[pi*3+1] - (-mouse3D.y * 200);
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < 180 && dist > 1) {
+          pos[pi*3] += (dx / dist) * 1.5;
+          pos[pi*3+1] += (dy / dist) * 1.5;
+        }
+      }
+      if(pos[pi*3 + 1] > 650) {
+        pos[pi*3 + 1] = -650;
+      }
+    }
+    starParticles.geometry.attributes.position.needsUpdate = true;
+    starParticles.rotation.y = time * 0.015 + c * 0.3;
+    starParticles.rotation.x = time * 0.008;
   }
 
   crystalHearts.forEach(function(h){
@@ -1621,6 +1716,8 @@ function loopSparkles() {
   curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
   for(var i = sparkles.length - 1; i >= 0; i--) {
     var s = sparkles[i];
+    s.vy -= 0.04;
+    s.vx *= 0.98;
     s.x += s.vx;
     s.y += s.vy;
     s.alpha -= s.decay;
@@ -1652,23 +1749,117 @@ function loopSparkles() {
 }
 loopSparkles();
 
+
+
+
 /* ==========================================================
-   4. MAGNETIC CTA BUTTON PHYSICS
+   ANTIGRAVITY DESIGN EXPERT: 3D SPATIAL PHYSICS & TILT ENGINE
    ========================================================== */
+function attachAntigravity3DPhysics(el, maxTiltDeg, maxTransZ) {
+  if(!el) return;
+  maxTiltDeg = maxTiltDeg || 14;
+  maxTransZ = maxTransZ || 16;
+
+  // Add glare specular sheen element
+  var glare = el.querySelector('.antigravity-glare');
+  if(!glare) {
+    glare = document.createElement('div');
+    glare.className = 'antigravity-glare';
+    el.appendChild(glare);
+  }
+
+  el.style.transformStyle = 'preserve-3d';
+  el.style.willChange = 'transform';
+
+  function onPointerMove(e) {
+    if(reduce) return;
+    var rect = el.getBoundingClientRect();
+    var px = (e.clientX - rect.left) / rect.width;
+    var py = (e.clientY - rect.top) / rect.height;
+
+    px = Math.max(0, Math.min(1, px));
+    py = Math.max(0, Math.min(1, py));
+
+    var rotX = (py - 0.5) * -maxTiltDeg * 2;
+    var rotY = (px - 0.5) * maxTiltDeg * 2;
+
+    el.style.setProperty('--glare-x', (px * 100).toFixed(1) + '%');
+    el.style.setProperty('--glare-y', (py * 100).toFixed(1) + '%');
+    glare.style.opacity = '1';
+
+    if(window.gsap) {
+      gsap.to(el, {
+        rotationX: rotX,
+        rotationY: rotY,
+        z: maxTransZ,
+        transformPerspective: 1000,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: "auto"
+      });
+    } else {
+      el.style.transform = 'perspective(1000px) rotateX(' + rotX.toFixed(2) + 'deg) rotateY(' + rotY.toFixed(2) + 'deg) translateZ(' + maxTransZ + 'px)';
+    }
+  }
+
+  function onPointerLeave() {
+    glare.style.opacity = '0';
+    if(window.gsap) {
+      gsap.to(el, {
+        rotationX: 0,
+        rotationY: 0,
+        z: 0,
+        duration: 0.85,
+        ease: "elastic.out(1, 0.45)",
+        overwrite: "auto"
+      });
+    } else {
+      el.style.transform = '';
+    }
+  }
+
+  el.addEventListener('pointermove', onPointerMove);
+  el.addEventListener('pointerleave', onPointerLeave);
+}
+
 function attachMagneticPhysics(btn) {
   if(!btn) return;
   btn.addEventListener('mousemove', function(e){
+    if(reduce) return;
     var rect = btn.getBoundingClientRect();
     var x = e.clientX - (rect.left + rect.width / 2);
     var y = e.clientY - (rect.top + rect.height / 2);
-    btn.style.transform = 'translate(' + (x * 0.3) + 'px, ' + (y * 0.3) + 'px)';
+    if(window.gsap) {
+      gsap.to(btn, {
+        x: x * 0.35,
+        y: y * 0.35,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: "auto"
+      });
+    } else {
+      btn.style.transform = 'translate(' + (x * 0.3) + 'px, ' + (y * 0.3) + 'px)';
+    }
   });
   btn.addEventListener('mouseleave', function(){
-    btn.style.transform = '';
+    if(window.gsap) {
+      gsap.to(btn, {
+        x: 0,
+        y: 0,
+        duration: 0.7,
+        ease: "elastic.out(1, 0.4)",
+        overwrite: "auto"
+      });
+    } else {
+      btn.style.transform = '';
+    }
   });
 }
 ['tap', 'open', 'bgo', 'btap', 'cake-action-btn'].forEach(function(id){
   attachMagneticPhysics($(id));
+});
+['ask-card', 'bub', 'cake-card'].forEach(function(id){
+  attachAntigravity3DPhysics($(id), 12, 16);
 });
 
 /* ==========================================================
@@ -1825,7 +2016,18 @@ tap.addEventListener('click', function(){
 function reveal() {
   ask.classList.add('on');
   try { inp.focus({ preventScroll: true }); } catch(e){}
-  if(M && M.animate && !reduce) {
+  if(window.gsap && !reduce) {
+    try {
+      gsap.fromTo("#ask-card",
+        { scale: 0.85, y: 35, opacity: 0, rotateX: 18 },
+        { scale: 1, y: 0, opacity: 1, rotateX: 0, duration: 1.0, ease: "power3.out" }
+      );
+      gsap.fromTo("#ask-card > *",
+        { opacity: 0, y: 20, z: -10 },
+        { opacity: 1, y: 0, z: 0, stagger: 0.08, duration: 0.7, ease: "back.out(1.6)", delay: 0.25 }
+      );
+    } catch(e){}
+  } else if(M && M.animate && !reduce) {
     try {
       M.animate($('q'), { y: [26, 0] }, { duration: 1.2, ease: [0.2, 0.7, 0.2, 1] });
       M.animate($('row'), { y: [22, 0], scale: [0.92, 1] }, { type: 'spring', stiffness: 140, damping: 16, delay: 0.5 });
@@ -2169,6 +2371,18 @@ function openGate(g, max) {
 
   catEl.classList.add('on');
   sfx('pop');
+  if(window.gsap && !reduce) {
+    try {
+      gsap.fromTo("#bub",
+        { scale: 0.82, y: 28, opacity: 0, rotateX: -16 },
+        { scale: 1, y: 0, opacity: 1, rotateX: 0, duration: 0.8, ease: "back.out(1.5)" }
+      );
+      gsap.fromTo(["#cat-chip", "#bq", tp ? "#btap" : "#brow"],
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, stagger: 0.07, duration: 0.5, ease: "power2.out", delay: 0.15 }
+      );
+    } catch(e){}
+  }
   if(cfallback) $('catimg').hidden = false;
 
   if(reduce) { playCat('idle'); }
