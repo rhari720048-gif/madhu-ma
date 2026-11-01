@@ -99,91 +99,21 @@ html, body { background: var(--bg); color: var(--ink); font-family: 'Outfit', -a
 .letterbox-bottom { bottom: 0; }
 body.cinema-mode .letterbox { height: min(5vh, 42px); }
 
-/* Cinema HUD Top Bar */
-#cinema-hud {
+/* Top Right Audio & Screen Controls */
+.hud-actions {
   position: fixed;
   top: calc(14px + env(safe-area-inset-top, 0px));
-  left: 14px;
   right: 14px;
   z-index: 50;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-16px);
-  transition: opacity 0.8s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.8s ease;
 }
-#cinema-hud.on {
+.hud-actions.on {
   opacity: 1;
-  transform: none;
-}
-.hud-glass-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: rgba(18, 7, 36, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 1px var(--glass-specular);
-  pointer-events: auto;
-}
-#act-indicator {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--gold);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-#act-indicator .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ff529a;
-  box-shadow: 0 0 10px #ff529a;
-  animation: pulseDot 1.8s infinite;
-}
-@keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
-
-/* Story Timeline Chapter Pills (Scroll Navigator) */
-#chapters-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.chap-btn {
-  background: transparent;
-  border: 0;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.chap-btn.active {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 12px var(--violet-glow);
-}
-.chap-btn:hover { color: var(--gold); }
-
-/* Top Right Audio & Screen Controls */
-.hud-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   pointer-events: auto;
 }
 .hud-icon-btn {
@@ -704,47 +634,7 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   display: block;
 }
 
-/* Floating Polaroid Memory Badge */
-#memory-badge {
-  position: fixed;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  right: 20px;
-  z-index: 46;
-  max-width: 220px;
-  padding: 10px;
-  border-radius: 16px;
-  background: rgba(24, 10, 48, 0.75);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(30px) rotate(4deg);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-#memory-badge.show {
-  opacity: 1;
-  transform: translateY(0) rotate(-2deg);
-}
-#memory-badge img {
-  width: 100%;
-  height: 130px;
-  object-fit: cover;
-  border-radius: 10px;
-  margin-bottom: 6px;
-}
-#memory-badge .mem-title {
-  font-family: 'Dancing Script', cursive;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--gold);
-  line-height: 1.2;
-}
-#memory-badge .mem-desc {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.75);
-}
+
 
 /* 3D Birthday Cake Interactive Modal (Grand Finale) */
 #cake-modal {
@@ -907,10 +797,8 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
 #fx { position: fixed; inset: 0; z-index: 29; pointer-events: none; }
 
 @media (max-width: 640px) {
-  #cinema-hud { top: 8px; left: 8px; right: 8px; }
-  #chapters-nav { display: none; }
+  .hud-actions { top: 8px; right: 8px; }
   #catc { height: 26vh; }
-  #memory-badge { max-width: 170px; right: 10px; bottom: 85px; }
 }
 </style>
 </head>
@@ -933,26 +821,14 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
 <div class="letterbox letterbox-top"></div>
 <div class="letterbox letterbox-bottom"></div>
 
-<!-- Interactive Cinema HUD -->
-<header id="cinema-hud">
-  <div class="hud-glass-pill" id="act-pill">
-    <div id="act-indicator"><span class="dot"></span><span id="act-title">ACT I ✧ THE AWAKENING</span></div>
-  </div>
-  <nav class="hud-glass-pill" id="chapters-nav">
-    <button class="chap-btn active" data-at="0.0">🌅 Dawn</button>
-    <button class="chap-btn" data-at="0.51">💎 Jhumka</button>
-    <button class="chap-btn" data-at="0.63">🎶 Melody</button>
-    <button class="chap-btn" data-at="0.75">🏛️ College</button>
-    <button class="chap-btn" data-at="0.94">🎂 Cake</button>
-  </nav>
-  <div class="hud-actions">
-    <button class="hud-icon-btn" id="bgm-btn" aria-label="Toggle Soundtrack" title="Toggle Soundtrack">
-      <div id="eq-bars"><span></span><span></span><span></span></div>
-    </button>
-    <button class="hud-icon-btn" id="mute-btn" aria-label="Mute sound" title="Sound Effects">🔊</button>
-    <button class="hud-icon-btn" id="fs-btn" aria-label="Toggle Fullscreen" title="Fullscreen">⛶</button>
-  </div>
-</header>
+<!-- Audio & Screen Controls -->
+<div class="hud-actions" id="hud-actions">
+  <button class="hud-icon-btn" id="bgm-btn" aria-label="Toggle Soundtrack" title="Toggle Soundtrack">
+    <div id="eq-bars"><span></span><span></span><span></span></div>
+  </button>
+  <button class="hud-icon-btn" id="mute-btn" aria-label="Mute sound" title="Sound Effects">🔊</button>
+  <button class="hud-icon-btn" id="fs-btn" aria-label="Toggle Fullscreen" title="Fullscreen">⛶</button>
+</div>
 
 <!-- HUD Reticle Brackets -->
 <div class="hud-brackets" id="hud-brackets"><i></i><i></i><i></i><i></i></div>
@@ -1029,12 +905,7 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   <img id="catimg" src="cat/front.png" alt="" hidden>
 </div>
 
-<!-- Floating Polaroid Memory Preview -->
-<aside id="memory-badge">
-  <img id="mem-img" src="assets/refs/jhumka_earrings.png" alt="Memory Preview">
-  <div class="mem-title" id="mem-title">Jhumka Earring 💎</div>
-  <div class="mem-desc" id="mem-desc">A little special surprise in thought</div>
-</aside>
+
 
 <!-- 3D Birthday Cake Interactive Modal (Grand Finale) -->
 <div id="cake-modal">
@@ -2111,28 +1982,7 @@ function openCakeCeremony() {
 }
 $('cake-action-btn').addEventListener('click', blowCakeCandles);
 
-// Floating Memory Badge Updates based on Timeline
-var memBadge = $('memory-badge'), memImg = $('mem-img'), memTitle = $('mem-title'), memDesc = $('mem-desc');
-function updateMemoryBadge(p) {
-  if(p > 0.48 && p < 0.62) {
-    memImg.src = 'assets/refs/jhumka_earrings.png';
-    memTitle.textContent = 'Jhumka Earring 💎';
-    memDesc.textContent = 'A special gift in thoughts 🥹💜';
-    memBadge.classList.add('show');
-  } else if(p > 0.68 && p < 0.82) {
-    memImg.src = 'assets/refs/college_building.png';
-    memTitle.textContent = 'College Campus 🏛️';
-    memDesc.textContent = 'Memories & laughter filled corridors ✨';
-    memBadge.classList.add('show');
-  } else if(p > 0.88) {
-    memImg.src = 'assets/refs/1_Madhu_main.png';
-    memTitle.textContent = 'Sweetest Smile 🌸';
-    memDesc.textContent = 'Wishing you all the happiness today 🎂💜';
-    memBadge.classList.add('show');
-  } else {
-    memBadge.classList.remove('show');
-  }
-}
+
 
 // Top Controls Handlers
 $('mute-btn').addEventListener('click', function(){
@@ -2150,15 +2000,7 @@ $('fs-btn').addEventListener('click', function(){
   }
 });
 
-// Chapter Navigation Click Listener
-document.querySelectorAll('.chap-btn').forEach(function(btn){
-  btn.addEventListener('click', function(){
-    var targetAt = parseFloat(this.getAttribute('data-at'));
-    var max = document.documentElement.scrollHeight - innerHeight;
-    window.scrollTo({ top: targetAt * max, behavior: 'smooth' });
-    sfx('pop');
-  });
-});
+
 
 var trick = null;
 function trickle(on) {
@@ -2203,7 +2045,7 @@ function startFilm() {
 
 function finish() {
   state = 'scroll';
-  $('cinema-hud').classList.add('on');
+  $('hud-actions').classList.add('on');
   document.body.style.overflow = 'auto';
   track.style.height = '2000vh';
   scrollTo(0, 0);
@@ -2228,28 +2070,7 @@ function finish() {
     v.style.opacity = c < 0.2 ? 0 : c < 0.25 ? (c - 0.2) / 0.05 * 0.62 : c < 0.33 ? 0.62 : c < 0.36 ? 0.62 + (c - 0.33) / 0.03 * 0.2 : 0.82;
     hint.style.opacity = c < 0.02 ? 1 : 0;
 
-    // Update Story Navigation & Act Title
-    var actTitle = $('act-title');
-    var chapButtons = document.querySelectorAll('.chap-btn');
-    if(c < 0.25) {
-      actTitle.textContent = "ACT I ✧ THE AWAKENING";
-      chapButtons.forEach(function(b, idx){ b.classList.toggle('active', idx === 0); });
-    } else if(c < 0.48) {
-      actTitle.textContent = "ACT II ✧ THE SUNRISE BLESSING";
-      chapButtons.forEach(function(b, idx){ b.classList.toggle('active', idx === 1); });
-    } else if(c < 0.70) {
-      actTitle.textContent = "ACT III ✧ SWEET MEMORY LANE";
-      chapButtons.forEach(function(b, idx){ b.classList.toggle('active', idx === 2); });
-    } else if(c < 0.88) {
-      actTitle.textContent = "ACT IV ✧ COLLEGE ADVENTURES";
-      chapButtons.forEach(function(b, idx){ b.classList.toggle('active', idx === 3); });
-    } else {
-      actTitle.textContent = "ACT V ✧ GRAND CELEBRATION";
-      chapButtons.forEach(function(b, idx){ b.classList.toggle('active', idx === 4); });
-    }
 
-    // Update Floating Polaroid Badge
-    updateMemoryBadge(c);
 
     var ng = QUESTIONS[gi];
     if(ng && !gateOn && p >= ng.at - 0.07) preloadGate(ng);
