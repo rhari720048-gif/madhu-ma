@@ -7,7 +7,7 @@ Static site (no build step). `index.html` is the whole experience.
 - `frames/`         sun_###.webp (sunrise), story_###.webp (desktop 1440px, 12fps), m_###.webp (phone portrait 608x1080)
 - `cat/`            cat clips (14 actions, 24fps) + front.png
 - `vercel.json`     long cache headers for frames/cat
-- `tools/catgen/`   Python generator for the cat clips (pip install -r requirements.txt)
+- `tools/catgen/`   Python generator for the cat clips (pip install -r requirements-dev.txt)
 - `assets/refs/`    face crops, uniform, college, jhumka references for Flow prompts
 - `docs/`           story timeline, Flow prompt
 
