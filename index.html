@@ -919,6 +919,68 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
   .antigravity-glare { display: none !important; }
 }
 
+
+/* Cake Celebration Modal Extra Styles */
+.cake-portrait-ring {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(135deg, var(--gold), #ff9fd2, #b57bff);
+  box-shadow: 0 0 25px rgba(255, 233, 168, 0.6), 0 0 45px rgba(181, 123, 255, 0.4);
+  margin-bottom: 0.3rem;
+  animation: portraitGlow 3s infinite alternate ease-in-out;
+}
+@keyframes portraitGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(255, 233, 168, 0.5)); }
+  100% { transform: scale(1.05); filter: drop-shadow(0 0 28px rgba(255, 159, 210, 0.8)); }
+}
+.cake-portrait-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.cake-modal-btns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
+.cake-action-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 2.2rem;
+  font: 700 1.35rem 'Dancing Script', cursive;
+  color: #240544;
+  cursor: pointer;
+  background: linear-gradient(135deg, #fff7dc, #ffd2eb 50%, #c9a0ff);
+  box-shadow: 0 10px 30px rgba(255, 233, 168, 0.6);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cake-action-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 14px 45px var(--gold-glow);
+}
+.cake-secondary-btn {
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 0.85rem 1.8rem;
+  font: 600 0.95rem 'Outfit', sans-serif;
+  letter-spacing: 0.05em;
+  color: #fff;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  transition: all 0.25s;
+}
+.cake-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--gold);
+}
+
 </style>
 </head>
 <body>
@@ -1029,6 +1091,21 @@ body.cinema-mode .letterbox { height: min(5vh, 42px); }
 
 
 <!-- Cursor Magic Sparkle Canvas -->
+<!-- 3D Birthday Celebration Cake Modal -->
+<div id="cake-modal">
+  <div id="cake-card" class="antigravity-3d">
+    <div class="cake-portrait-ring">
+      <img src="assets/refs/madhu_portrait.png" alt="Madhu Ma" class="cake-portrait-img">
+    </div>
+    <h2 class="cake-title">Happy Birthday Madhu Ma! 🎂🎉💜</h2>
+    <p class="cake-subtitle">Intha naal unakku romba romba special-ah irukanum… un mugathula eppovum intha sirippu irukanum! 💜✨</p>
+    <div class="cake-modal-btns">
+      <button id="cake-replay-btn" class="cake-action-btn">Once More Vetuvom 🎂✨</button>
+      <button id="cake-close-btn" class="cake-secondary-btn">Explore Memories ✧</button>
+    </div>
+  </div>
+</div>
+
 <canvas id="cursor-canvas"></canvas>
 
 <div id="flash"></div>
@@ -1056,7 +1133,7 @@ var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
    ========================================================== */
 var scene, camera, renderer, raycaster, mouseRay;
 var starParticles, crystalHearts = [];
-var jhumkaGroup, musicGroup, stageCakeGroup, candleFlames = [];
+var jhumkaGroup, musicGroup, stageCakeGroup, candleFlames = [], handGroup, knifeGroup, lighterGroup, lighterFlame, handCakeSlice, cakeCandleLight;
 var mouse3D = { x: 0, y: 0, targetX: 0, targetY: 0 };
 var scrollProgress = 0, targetScrollProgress = 0;
 var cakeCandlesLit = true;
@@ -1229,89 +1306,229 @@ function create3DMusicNotes() {
 }
 
 // Procedural 3D Floating Celebration Birthday Cake
+function create3DHand() {
+  var hGroup = new THREE.Group();
+
+  var skinMat = new THREE.MeshPhysicalMaterial({
+    color: 0xf3bd96,
+    roughness: 0.45,
+    metalness: 0.05,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.35
+  });
+
+  var goldMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffd700,
+    emissive: 0x553a00,
+    metalness: 0.95,
+    roughness: 0.15,
+    clearcoat: 1.0
+  });
+
+  // Forearm / Wrist
+  var armGeo = new THREE.CylinderGeometry(3.0, 4.0, 24, 24);
+  var arm = new THREE.Mesh(armGeo, skinMat);
+  arm.position.set(0, -12, 0);
+  hGroup.add(arm);
+
+  // Wrist cuff / gold bangle
+  var cuffGeo = new THREE.TorusGeometry(3.4, 0.65, 16, 32);
+  var cuff = new THREE.Mesh(cuffGeo, goldMat);
+  cuff.rotation.x = Math.PI / 2;
+  cuff.position.y = -1.5;
+  hGroup.add(cuff);
+
+  // Palm
+  var palmGeo = new THREE.BoxGeometry(6.8, 7.5, 3.4);
+  var palm = new THREE.Mesh(palmGeo, skinMat);
+  palm.position.set(0, 3.2, 0);
+  hGroup.add(palm);
+
+  // Fingers (curved in realistic grip)
+  var fingerX = [-2.3, -0.75, 0.75, 2.3];
+  var fingerLengths = [5.2, 6.0, 5.5, 4.6];
+  fingerX.forEach(function(fx, idx){
+    var len = fingerLengths[idx];
+    var fGeo = new THREE.CylinderGeometry(0.8, 0.9, len, 16);
+    var finger = new THREE.Mesh(fGeo, skinMat);
+    finger.position.set(fx, 6.5 + len/2 - 1, 1.1);
+    finger.rotation.x = 0.65;
+    hGroup.add(finger);
+  });
+
+  // Thumb
+  var thumbGeo = new THREE.CylinderGeometry(0.9, 1.05, 4.8, 16);
+  var thumb = new THREE.Mesh(thumbGeo, skinMat);
+  thumb.position.set(-3.0, 2.8, 1.5);
+  thumb.rotation.set(0.3, -0.4, 0.75);
+  hGroup.add(thumb);
+
+  // --- TOOL 1: GOLDEN LIGHTER ---
+  lighterGroup = new THREE.Group();
+  var lBodyGeo = new THREE.BoxGeometry(3.0, 5.8, 1.8);
+  var lBody = new THREE.Mesh(lBodyGeo, goldMat);
+  lighterGroup.add(lBody);
+
+  var lCapGeo = new THREE.BoxGeometry(3.0, 1.8, 1.8);
+  var lCap = new THREE.Mesh(lCapGeo, goldMat);
+  lCap.position.set(1.3, 3.6, 0);
+  lCap.rotation.z = -0.65;
+  lighterGroup.add(lCap);
+
+  var chimneyGeo = new THREE.CylinderGeometry(0.55, 0.55, 1.5, 16);
+  var silverMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, metalness: 0.92, roughness: 0.15 });
+  var chimney = new THREE.Mesh(chimneyGeo, silverMat);
+  chimney.position.set(-0.5, 3.4, 0);
+  lighterGroup.add(chimney);
+
+  var lFlameGeo = new THREE.SphereGeometry(1.2, 16, 16);
+  lFlameGeo.scale(0.8, 2.2, 0.8);
+  var lFlameMat = new THREE.MeshBasicMaterial({ color: 0xff9900 });
+  lighterFlame = new THREE.Mesh(lFlameGeo, lFlameMat);
+  lighterFlame.position.set(-0.5, 5.2, 0);
+  lighterFlame.visible = false;
+  lighterGroup.add(lighterFlame);
+
+  lighterGroup.position.set(0, 7.2, 2.2);
+  hGroup.add(lighterGroup);
+
+  // --- TOOL 2: CELEBRATION CAKE KNIFE ---
+  knifeGroup = new THREE.Group();
+  
+  var bladeShape = new THREE.Shape();
+  bladeShape.moveTo(0, 0);
+  bladeShape.lineTo(2.2, 0);
+  bladeShape.lineTo(1.6, 25);
+  bladeShape.lineTo(0, 29);
+  bladeShape.lineTo(-0.2, 0);
+  bladeShape.closePath();
+  var bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, steps: 1 });
+  bladeGeo.center();
+  var bladeMat = new THREE.MeshStandardMaterial({
+    color: 0xf5f8ff,
+    metalness: 0.98,
+    roughness: 0.08
+  });
+  var blade = new THREE.Mesh(bladeGeo, bladeMat);
+  blade.position.set(0, 16.5, 0);
+  knifeGroup.add(blade);
+
+  var bolsterGeo = new THREE.CylinderGeometry(1.3, 1.3, 1.8, 16);
+  var bolster = new THREE.Mesh(bolsterGeo, goldMat);
+  bolster.position.set(0, 2.0, 0);
+  knifeGroup.add(bolster);
+
+  var handleMat = new THREE.MeshStandardMaterial({ color: 0x3d0b66, roughness: 0.3, metalness: 0.2 });
+  var handleGeo = new THREE.CylinderGeometry(1.1, 1.3, 10.5, 16);
+  var handle = new THREE.Mesh(handleGeo, handleMat);
+  handle.position.set(0, -3.8, 0);
+  knifeGroup.add(handle);
+
+  knifeGroup.position.set(0, 7.2, 2.4);
+  knifeGroup.visible = false;
+  hGroup.add(knifeGroup);
+
+  hGroup.scale.set(1.15, 1.15, 1.15);
+  hGroup.position.set(45, -120, 45);
+  hGroup.visible = false;
+  return hGroup;
+}
+
 function create3DStageCake() {
   var group = new THREE.Group();
 
-  // Tier 1 (Base)
-  var t1Geo = new THREE.CylinderGeometry(24, 24, 12, 36);
   var cakeMat1 = new THREE.MeshStandardMaterial({ color: 0x5a188f, roughness: 0.35, metalness: 0.1 });
+  var cakeMat2 = new THREE.MeshStandardMaterial({ color: 0xff7fc0, roughness: 0.35, metalness: 0.1 });
+  var creamMat = new THREE.MeshStandardMaterial({ color: 0xfff7ed, roughness: 0.2 });
+  var insideSpongeMat = new THREE.MeshStandardMaterial({ color: 0xffddaa, roughness: 0.5 });
+
+  // Main Tier 1 Body (Cylinder with 35-deg wedge cut opening)
+  var t1Geo = new THREE.CylinderGeometry(24, 24, 12, 36, 1, false, Math.PI * 0.12, Math.PI * 1.76);
   var t1 = new THREE.Mesh(t1Geo, cakeMat1);
   t1.position.y = 6;
   group.add(t1);
 
-  // Cream icing tier 1
-  var creamGeo1 = new THREE.TorusGeometry(24, 1.8, 16, 36);
-  var creamMat = new THREE.MeshStandardMaterial({ color: 0xfff7ed, roughness: 0.2 });
-  var c1 = new THREE.Mesh(creamGeo1, creamMat);
-  c1.rotation.x = Math.PI / 2;
-  c1.position.y = 12;
-  group.add(c1);
-
-  // Tier 2 (Top)
-  var t2Geo = new THREE.CylinderGeometry(16, 16, 10, 32);
-  var cakeMat2 = new THREE.MeshStandardMaterial({ color: 0xff7fc0, roughness: 0.35, metalness: 0.1 });
+  // Main Tier 2 Body
+  var t2Geo = new THREE.CylinderGeometry(16, 16, 10, 32, 1, false, Math.PI * 0.12, Math.PI * 1.76);
   var t2 = new THREE.Mesh(t2Geo, cakeMat2);
   t2.position.y = 17;
   group.add(t2);
 
-  // Cream icing tier 2
-  var creamGeo2 = new THREE.TorusGeometry(16, 1.5, 16, 32);
-  var c2 = new THREE.Mesh(creamGeo2, creamMat);
+  // Cream Trim Main
+  var c1Geo = new THREE.TorusGeometry(24, 1.8, 16, 36);
+  var c1 = new THREE.Mesh(c1Geo, creamMat);
+  c1.rotation.x = Math.PI / 2;
+  c1.position.y = 12;
+  group.add(c1);
+
+  var c2Geo = new THREE.TorusGeometry(16, 1.5, 16, 32);
+  var c2 = new THREE.Mesh(c2Geo, creamMat);
   c2.rotation.x = Math.PI / 2;
   c2.position.y = 22;
   group.add(c2);
 
-  // Candles & Animated 3D Flame Particles
+  // --- SEPARABLE 3D CAKE SLICE ---
+  handCakeSlice = new THREE.Group();
+
+  var s1Geo = new THREE.CylinderGeometry(24.1, 24.1, 12.05, 12, 1, false, -Math.PI * 0.12, Math.PI * 0.24);
+  var s1 = new THREE.Mesh(s1Geo, cakeMat1);
+  s1.position.y = 6;
+  handCakeSlice.add(s1);
+
+  var s2Geo = new THREE.CylinderGeometry(16.1, 16.1, 10.05, 12, 1, false, -Math.PI * 0.12, Math.PI * 0.24);
+  var s2 = new THREE.Mesh(s2Geo, cakeMat2);
+  s2.position.y = 17;
+  handCakeSlice.add(s2);
+
+  // Strawberry on top of the slice!
+  var strawGeo = new THREE.ConeGeometry(2.4, 4.2, 16);
+  var strawMat = new THREE.MeshStandardMaterial({ color: 0xff1744, roughness: 0.25 });
+  var straw = new THREE.Mesh(strawGeo, strawMat);
+  straw.position.set(0, 24.2, 10);
+  straw.rotation.x = 0.2;
+  handCakeSlice.add(straw);
+
+  group.add(handCakeSlice);
+
+  // 5 Birthday Candles & Animated 3D Flame Particles
   var candlePositions = [
     [0, 24, 0],
     [-7, 23.5, -4],
     [7, 23.5, -4],
-    [-5, 23.5, 6],
-    [5, 23.5, 6]
+    [-5, 23.5, 5],
+    [5, 23.5, 5]
   ];
 
   candleFlames = [];
-  candlePositions.forEach(function(pos){
+  candlePositions.forEach(function(pos, idx){
     var candleGeo = new THREE.CylinderGeometry(0.8, 0.8, 7, 16);
     var candleMat = new THREE.MeshStandardMaterial({ color: 0xffea9f, roughness: 0.2 });
     var candle = new THREE.Mesh(candleGeo, candleMat);
     candle.position.set(pos[0], pos[1] + 3.5, pos[2]);
     group.add(candle);
 
+    // Candle Wick
+    var wickGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8);
+    var wickMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+    var wick = new THREE.Mesh(wickGeo, wickMat);
+    wick.position.set(pos[0], pos[1] + 7.5, pos[2]);
+    group.add(wick);
+
     // Glowing Flame
-    var flameGeo = new THREE.SphereGeometry(1.4, 16, 16);
-    flameGeo.scale(1, 2, 1);
-    var flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    var flameGeo = new THREE.SphereGeometry(1.3, 16, 16);
+    flameGeo.scale(1, 2.2, 1);
+    var flameMat = new THREE.MeshBasicMaterial({ color: 0xff9900 });
     var flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.set(pos[0], pos[1] + 8, pos[2]);
+    flame.position.set(pos[0], pos[1] + 8.8, pos[2]);
+    flame.visible = true; // Lit initially for scroll view, reset in cutting sequence
     group.add(flame);
     candleFlames.push(flame);
   });
 
-  // Orbiting Mini 3D Gift Boxes
-  var giftMat = new THREE.MeshStandardMaterial({ color: 0xff5c9d, roughness: 0.2, metalness: 0.2 });
-  var goldRibbonMat = new THREE.MeshStandardMaterial({ color: 0xffe9a8, roughness: 0.1, metalness: 0.8 });
-  for(var g = 0; g < 3; g++) {
-    var boxGroup = new THREE.Group();
-    var bGeo = new THREE.BoxGeometry(6, 6, 6);
-    var box = new THREE.Mesh(bGeo, giftMat);
-    boxGroup.add(box);
-
-    var rGeo = new THREE.BoxGeometry(6.2, 6.2, 1.8);
-    var ribbon = new THREE.Mesh(rGeo, goldRibbonMat);
-    boxGroup.add(ribbon);
-
-    boxGroup.position.set((g - 1) * 36, -2, (R() - 0.5) * 20);
-    boxGroup.rotation.set(R(), R(), R());
-    boxGroup.userData = { rotSpeed: 0.015 + R() * 0.01 };
-    group.add(boxGroup);
-  }
-
   group.scale.set(1.1, 1.1, 1.1);
-  group.position.set(0, -450, 0); // Start below viewport
+  group.position.set(0, -450, 0);
   return group;
 }
-
 function init3DUniverse() {
   var canvas = $('webgl-canvas');
   scene = new THREE.Scene();
@@ -1450,6 +1667,13 @@ function init3DUniverse() {
   stageCakeGroup = create3DStageCake();
   scene.add(stageCakeGroup);
 
+  handGroup = create3DHand();
+  scene.add(handGroup);
+
+  cakeCandleLight = new THREE.PointLight(0xffaa22, 0, 320);
+  cakeCandleLight.position.set(0, 35, 15);
+  scene.add(cakeCandleLight);
+
   // Resize listener
   window.addEventListener('resize', function(){
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -1556,15 +1780,22 @@ function animate3D() {
 
   // 3D Celebration Birthday Cake descends into view around Phase 0.86+
   if(stageCakeGroup) {
-    var cakeActive = c > 0.85;
-    var targetCakeY = cakeActive ? -30 : -450;
-    stageCakeGroup.position.y += (targetCakeY - stageCakeGroup.position.y) * 0.08;
-    stageCakeGroup.rotation.y = time * 0.4;
+    if(window.isCuttingCake) {
+      stageCakeGroup.position.y += (-8 - stageCakeGroup.position.y) * 0.08;
+      stageCakeGroup.rotation.y = Math.sin(time * 0.6) * 0.15;
+    } else {
+      var cakeActive = c > 0.85;
+      var targetCakeY = cakeActive ? -30 : -450;
+      stageCakeGroup.position.y += (targetCakeY - stageCakeGroup.position.y) * 0.08;
+      stageCakeGroup.rotation.y = time * 0.4;
+    }
 
     if(cakeCandlesLit) {
       candleFlames.forEach(function(f, idx){
-        var flick = 1 + Math.sin(time * 15 + idx) * 0.18;
-        f.scale.set(flick, flick * 2, flick);
+        if(f.visible) {
+          var flick = 1 + Math.sin(time * 15 + idx) * 0.18;
+          f.scale.set(flick, flick * 2, flick);
+        }
       });
     }
   }
@@ -2450,6 +2681,219 @@ function openGate(g, max) {
   }, 900);
 }
 
+
+/* ==========================================================
+   3D REALISTIC CAKE LIGHTING & CUTTING CEREMONY ENGINE
+   ========================================================== */
+function trigger3DCakeCuttingSequence() {
+  if(window.isCuttingCakeTimeline) return;
+  window.isCuttingCake = true;
+  window.isCuttingCakeTimeline = true;
+
+  // 1. Hide cat gate cleanly and focus on cake
+  catEl.classList.remove('on');
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+
+  // 2. Bring 3D Cake into center focus
+  stageCakeGroup.position.set(0, -8, 0);
+  stageCakeGroup.scale.set(1.35, 1.35, 1.35);
+  stageCakeGroup.rotation.set(0.22, 0, 0);
+
+  // Turn off candles initially
+  candleFlames.forEach(function(f){ f.visible = false; });
+  cakeCandlesLit = false;
+  if(cakeCandleLight) cakeCandleLight.intensity = 0;
+
+  if(handCakeSlice) {
+    handCakeSlice.position.set(0, 0, 0);
+    handCakeSlice.rotation.set(0, 0, 0);
+  }
+
+  // 3. Hand Enters with Lighter
+  handGroup.visible = true;
+  lighterGroup.visible = true;
+  knifeGroup.visible = false;
+  lighterFlame.visible = false;
+  handGroup.position.set(45, -35, 40);
+  handGroup.rotation.set(-0.2, -0.3, 0.15);
+
+  if(!window.gsap) {
+    // Fallback if GSAP is not present
+    candleFlames.forEach(function(f){ f.visible = true; });
+    cakeCandlesLit = true;
+    showGrandCelebrationModal();
+    return;
+  }
+
+  // Camera Cinematic Dolly
+  gsap.to(camera.position, { x: 0, y: 16, z: 120, duration: 1.4, ease: "power2.out" });
+
+  var tl = gsap.timeline();
+
+  // Step 1: Hand glides up to the cake holding golden lighter
+  tl.to(handGroup.position, {
+    x: 16,
+    y: 26,
+    z: 22,
+    duration: 1.2,
+    ease: "power2.out"
+  });
+
+  // Step 2: Flick lighter & ignite flame
+  tl.call(function(){
+    lighterFlame.visible = true;
+    sfx('spark');
+  });
+
+  // Step 3: Hand moves across candles to light each one
+  tl.to(handGroup.position, {
+    x: 4,
+    y: 33,
+    z: 14,
+    duration: 0.7,
+    ease: "sine.inOut",
+    onUpdate: function(){
+      candleFlames.slice(0, 3).forEach(function(f){
+        if(!f.visible) {
+          f.visible = true;
+          f.scale.set(0.2, 0.2, 0.2);
+          gsap.to(f.scale, { x: 1, y: 2.2, z: 1, duration: 0.3, ease: "back.out(2)" });
+          sfx('spark');
+        }
+      });
+      if(cakeCandleLight) cakeCandleLight.intensity = 2.0;
+    }
+  });
+
+  tl.to(handGroup.position, {
+    x: -8,
+    y: 34,
+    z: 12,
+    duration: 0.7,
+    ease: "sine.inOut",
+    onUpdate: function(){
+      candleFlames.forEach(function(f){
+        if(!f.visible) {
+          f.visible = true;
+          f.scale.set(0.2, 0.2, 0.2);
+          gsap.to(f.scale, { x: 1, y: 2.2, z: 1, duration: 0.3, ease: "back.out(2)" });
+          sfx('spark');
+        }
+      });
+      cakeCandlesLit = true;
+      if(cakeCandleLight) cakeCandleLight.intensity = 3.5;
+    }
+  });
+
+  // Step 4: Hand retreats slightly and equips Cake Knife
+  tl.to(handGroup.position, {
+    x: 28,
+    y: 44,
+    z: 28,
+    duration: 0.8,
+    ease: "power2.inOut",
+    onComplete: function(){
+      lighterGroup.visible = false;
+      knifeGroup.visible = true;
+    }
+  });
+
+  // Step 5: Hand positions knife directly above cake front slice
+  tl.to(handGroup.position, {
+    x: 0,
+    y: 46,
+    z: 8,
+    duration: 0.9,
+    ease: "power2.out"
+  });
+  tl.to(handGroup.rotation, {
+    x: 0.52,
+    y: 0.1,
+    z: -0.12,
+    duration: 0.9
+  }, "<");
+
+  // Brief suspense pause
+  tl.to({}, { duration: 0.25 });
+
+  // Step 6: THE CUT - Hand slices down through the cake!
+  tl.to(handGroup.position, {
+    x: 0,
+    y: 8,
+    z: 12,
+    duration: 0.72,
+    ease: "power2.in",
+    onStart: function(){
+      sfx('slice');
+    }
+  });
+
+  // Step 7: Slice separates outward cleanly + Confetti & Fanfare!
+  tl.call(function(){
+    sfx('pop');
+    sfx('fanfare');
+    fireGrandCelebrationConfetti();
+    if(handCakeSlice) {
+      gsap.to(handCakeSlice.position, {
+        x: 6,
+        z: 20,
+        duration: 1.2,
+        ease: "back.out(1.5)"
+      });
+      gsap.to(handCakeSlice.rotation, {
+        y: 0.16,
+        duration: 1.2,
+        ease: "power2.out"
+      });
+    }
+  });
+
+  // Step 8: Hand lifts up in celebration
+  tl.to(handGroup.position, {
+    x: 18,
+    y: 50,
+    z: 24,
+    duration: 0.9,
+    ease: "back.out(1.5)"
+  });
+
+  // Hand exits screen smoothly
+  tl.to(handGroup.position, {
+    y: -95,
+    duration: 1.1,
+    ease: "power2.in",
+    delay: 0.4,
+    onComplete: function(){
+      handGroup.visible = false;
+      window.isCuttingCakeTimeline = false;
+    }
+  });
+
+  // Step 9: Reveal Grand Celebration Antigravity Modal!
+  tl.call(function(){
+    showGrandCelebrationModal();
+  });
+}
+
+function showGrandCelebrationModal() {
+  var modal = $('cake-modal');
+  if(!modal) return;
+  modal.classList.add('on');
+  fireGrandCelebrationConfetti();
+
+  if(window.gsap) {
+    gsap.fromTo("#cake-card",
+      { scale: 0.8, y: 50, opacity: 0, rotateX: 25 },
+      { scale: 1, y: 0, opacity: 1, rotateX: 0, duration: 1.1, ease: "power3.out" }
+    );
+    gsap.fromTo("#cake-card > *",
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, stagger: 0.08, duration: 0.7, ease: "back.out(1.6)", delay: 0.25 }
+    );
+  }
+}
+
 function finishGate(res) {
   bin.disabled = true;
   btap.disabled = true;
@@ -2464,11 +2908,17 @@ function finishGate(res) {
       catEl.classList.remove('on');
       gi++;
       gateOn = false;
-      document.body.style.overflow = 'auto';
-      document.body.style.overflowY = 'auto';
-      document.documentElement.style.overflow = 'auto';
-      document.documentElement.style.overflowY = 'auto';
       playCat('idle');
+
+      // If this is the Cake question (cheer), trigger the 3D hand cutting sequence!
+      if(res.a === 'cheer') {
+        setTimeout(trigger3DCakeCuttingSequence, 200);
+      } else {
+        document.body.style.overflow = 'auto';
+        document.body.style.overflowY = 'auto';
+        document.documentElement.style.overflow = 'auto';
+        document.documentElement.style.overflowY = 'auto';
+      }
     }, 600);
   };
 
